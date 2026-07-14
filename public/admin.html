@@ -24,7 +24,7 @@
             </div>
         </div>
 
-        <!-- MAIN ADMIN PANEL (Hidden initially) -->
+        <!-- MAIN ADMIN PANEL -->
         <div id="admin-content" class="hidden space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- POLL LIST -->
@@ -46,9 +46,19 @@
                             <div>
                                 <h2 id="edit-title" class="text-2xl font-bold text-white"></h2>
                                 <p id="edit-desc" class="text-sm text-gray-400 mt-1 italic whitespace-pre-wrap"></p>
+                                
+                                <!-- GENVEJSKNAPPER TIL AT ÅBNE/KOPIERE LINK -->
+                                <div class="flex gap-2 mt-3">
+                                    <a id="open-poll-btn" href="#" target="_blank" class="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-1.5 rounded border border-emerald-500/30 transition">
+                                        🔗 Åben afstemning
+                                    </a>
+                                    <button onclick="copyPollLink()" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold px-3 py-1.5 rounded transition">
+                                        📋 Kopier Link
+                                    </button>
+                                </div>
                             </div>
                             <button onclick="deletePoll()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded transition">
-                                Slet hele afstemningen
+                                Slet alt
                             </button>
                         </div>
 
@@ -56,7 +66,6 @@
                         <div class="space-y-3">
                             <h3 class="font-semibold text-emerald-400">Datoer i afstemningen</h3>
                             
-                            <!-- Tilføj ny dato -->
                             <div class="flex gap-2">
                                 <input type="date" id="new-date-input" class="bg-gray-700 border border-gray-600 rounded p-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500">
                                 <button onclick="addDateToPoll()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded transition">
@@ -64,7 +73,6 @@
                                 </button>
                             </div>
 
-                            <!-- Datoliste med slet-knap -->
                             <div id="dates-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                 <!-- Indlæses dynamisk -->
                             </div>
@@ -129,7 +137,7 @@
 
         async function selectPoll(id) {
             currentPollId = id;
-            loadPolls(); // Genindlæs for at opdatere aktiv styling i listen
+            loadPolls();
 
             const res = await fetch(`/api/polls/${id}`);
             const poll = await res.json();
@@ -140,6 +148,9 @@
 
             document.getElementById('edit-title').innerText = poll.title;
             document.getElementById('edit-desc').innerText = poll.description || 'Ingen beskrivelse.';
+
+            // Opdater linket på knappen, så den åbner afstemningen på forsiden
+            document.getElementById('open-poll-btn').href = `/?poll=${id}`;
 
             // Render datoer
             const datesList = document.getElementById('dates-list');
@@ -155,7 +166,7 @@
             });
 
             // Saml unikke stemmer/voters
-            const voterMap = {}; // name -> array of dates they voted for
+            const voterMap = {};
             poll.dates.forEach(d => {
                 d.votes.forEach(voter => {
                     if (!voterMap[voter]) voterMap[voter] = [];
@@ -186,6 +197,13 @@
                     votersList.appendChild(item);
                 });
             }
+        }
+
+        function copyPollLink() {
+            if (!currentPollId) return;
+            const pollLink = `${window.location.origin}/?poll=${currentPollId}`;
+            navigator.clipboard.writeText(pollLink);
+            alert('Linket til afstemningen er kopieret til udklipsholderen!');
         }
 
         async function addDateToPoll() {
