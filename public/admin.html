@@ -3,149 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Venne-Dato</title>
+    <title>Admin Panel - Venne-Dato</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 md:p-8">
 
     <div class="max-w-4xl mx-auto">
         <!-- HEADER -->
         <div class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
-            <h1 class="text-3xl font-bold text-emerald-400">🛡️ Admin Panel</h1>
-            <button onclick="logout()" id="logout-btn" class="hidden text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded transition">Log ud</button>
+            <h1 class="text-3xl font-bold text-emerald-400 flex items-center gap-2">⚙️ Admin Dashboard</h1>
+            <a href="/" class="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded font-semibold transition">Gå til Forsiden</a>
         </div>
 
         <!-- LOGIN FORM -->
-        <div id="login-section" class="max-w-md mx-auto bg-gray-800 p-8 rounded-2xl border border-gray-700 shadow-xl space-y-4">
-            <h2 class="text-xl font-semibold text-center">Log ind på administrationen</h2>
-            <div>
-                <input type="password" id="admin-password-input" placeholder="Indtast admin password..." class="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
+        <div id="login-section" class="max-w-md mx-auto bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-center">Log ind som administrator</h2>
+            <div class="space-y-4">
+                <input type="password" id="admin-pw" placeholder="Indtast adgangskode..." class="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                <button onclick="login()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-3 rounded-lg transition">Log ind</button>
             </div>
-            <button onclick="tryLogin()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-3 rounded-lg transition-colors">Log ind</button>
         </div>
 
-        <!-- DASHBOARD SECTION -->
-        <div id="dashboard-section" class="hidden space-y-6">
-            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg">
-                <h2 class="text-xl font-semibold text-emerald-400 mb-4">Aktive Afstemninger</h2>
-                
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-700 text-gray-400">
-                                <th class="py-3 px-4">Titel / Oprettet</th>
-                                <th class="py-3 px-4">Dato-forslag & Stemmer</th>
-                                <th class="py-3 px-4 text-right">Handlinger</th>
-                            </tr>
-                        </thead>
-                        <tbody id="polls-list">
-                            <!-- Indlæses dynamisk -->
-                        </tbody>
-                    </table>
+        <!-- MAIN ADMIN PANEL (Hidden initially) -->
+        <div id="admin-content" class="hidden space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- POLL LIST -->
+                <div class="md:col-span-1 bg-gray-800 p-4 rounded-xl border border-gray-700 h-[600px] flex flex-col">
+                    <h2 class="font-bold text-lg text-emerald-400 mb-4 border-b border-gray-700 pb-2">Vælg afstemning</h2>
+                    <div id="polls-list" class="space-y-2 overflow-y-auto flex-1 pr-1">
+                        <!-- Indlæses dynamisk -->
+                    </div>
+                </div>
+
+                <!-- EDIT PANEL -->
+                <div class="md:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 min-h-[600px]">
+                    <div id="no-poll-selected" class="h-full flex items-center justify-center text-gray-400 italic">
+                        Vælg en afstemning i venstre side for at administrere den.
+                    </div>
+
+                    <div id="poll-editor" class="hidden space-y-6">
+                        <div class="flex justify-between items-start border-b border-gray-700 pb-4">
+                            <div>
+                                <h2 id="edit-title" class="text-2xl font-bold text-white"></h2>
+                                <p id="edit-desc" class="text-sm text-gray-400 mt-1 italic whitespace-pre-wrap"></p>
+                            </div>
+                            <button onclick="deletePoll()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded transition">
+                                Slet hele afstemningen
+                            </button>
+                        </div>
+
+                        <!-- MANAGEMENT OF DATES -->
+                        <div class="space-y-3">
+                            <h3 class="font-semibold text-emerald-400">Datoer i afstemningen</h3>
+                            
+                            <!-- Tilføj ny dato -->
+                            <div class="flex gap-2">
+                                <input type="date" id="new-date-input" class="bg-gray-700 border border-gray-600 rounded p-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <button onclick="addDateToPoll()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs px-4 py-2 rounded transition">
+                                    + Tilføj dato
+                                </button>
+                            </div>
+
+                            <!-- Datoliste med slet-knap -->
+                            <div id="dates-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                <!-- Indlæses dynamisk -->
+                            </div>
+                        </div>
+
+                        <!-- MANAGEMENT OF VOTES (BY USER) -->
+                        <div class="space-y-3 border-t border-gray-700 pt-6">
+                            <h3 class="font-semibold text-emerald-400">Deltagere og deres stemmer</h3>
+                            <p class="text-xs text-gray-400">Her kan du fjerne en deltagers svar fuldstændigt, hvis de f.eks. vil starte forfra.</p>
+                            <div id="voters-list" class="space-y-2 max-h-60 overflow-y-auto mt-2">
+                                <!-- Indlæses dynamisk -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = window.location.origin;
-        let adminPassword = localStorage.getItem('admin_pass') || '';
+        let adminPassword = '';
+        let currentPollId = null;
 
-        // Tjek om vi allerede har et gemt password
-        if (adminPassword) {
-            showDashboard();
-        }
-
-        async function tryLogin() {
-            const password = document.getElementById('admin-password-input').value;
-            const res = await fetch(`${API_URL}/api/admin/login`, {
+        async function login() {
+            const pw = document.getElementById('admin-pw').value;
+            const res = await fetch('/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                body: JSON.stringify({ password: pw })
             });
 
             if (res.ok) {
-                localStorage.setItem('admin_pass', password);
-                adminPassword = password;
-                showDashboard();
+                adminPassword = pw;
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('admin-content').classList.remove('hidden');
+                loadPolls();
             } else {
-                alert('Forkert adgangskode! Prøv igen.');
+                alert('Forkert adgangskode!');
             }
         }
 
-        function logout() {
-            localStorage.removeItem('admin_pass');
-            location.reload();
-        }
-
-        function showDashboard() {
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('logout-btn').classList.remove('hidden');
-            document.getElementById('dashboard-section').classList.remove('hidden');
-            loadAdminPolls();
-        }
-
-        async function loadAdminPolls() {
-            const res = await fetch(`${API_URL}/api/admin/polls`, {
+        async function loadPolls() {
+            const res = await fetch('/api/admin/polls', {
                 headers: { 'x-admin-password': adminPassword }
             });
-
-            if (!res.ok) {
-                logout(); // Hvis passwordet på serveren er ændret, logges der ud
-                return;
-            }
-
             const polls = await res.json();
-            const list = document.getElementById('polls-list');
-            list.innerHTML = '';
-
-            if (polls.length === 0) {
-                list.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-gray-500">Ingen oprettede afstemninger endnu.</td></tr>`;
-                return;
-            }
-
+            
+            const listEl = document.getElementById('polls-list');
+            listEl.innerHTML = '';
+            
             polls.forEach(poll => {
-                const dateInfo = poll.dates.map(d => {
-                    const formatted = formatDate(d.date);
-                    return `<div><strong>${formatted}</strong>: ${d.votes.length} stemmer (${d.votes.join(', ') || 'ingen'})</div>`;
-                }).join('');
-
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-800 hover:bg-gray-800/50 transition-colors';
-                row.innerHTML = `
-                    <td class="py-4 px-4 align-top">
-                        <div class="font-bold text-white text-base">${poll.title}</div>
-                        <div class="text-xs text-gray-500 mt-1">Oprettet: ${new Date(poll.createdAt).toLocaleDateString('da-DK')}</div>
-                    </td>
-                    <td class="py-4 px-4 text-xs text-gray-300 space-y-1 align-top">
-                        ${dateInfo}
-                    </td>
-                    <td class="py-4 px-4 text-right align-top space-x-2 whitespace-nowrap">
-                        <a href="/?poll=${poll.id}" target="_blank" class="inline-block text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded transition">Vis Side</a>
-                        <button onclick="deletePoll('${poll.id}')" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded transition">Slet</button>
-                    </td>
+                const button = document.createElement('button');
+                button.className = `w-full text-left p-3 rounded-lg text-sm transition font-medium ${poll.id === currentPollId ? 'bg-emerald-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`;
+                button.innerHTML = `
+                    <div class="font-bold truncate">${poll.title}</div>
+                    <div class="text-[10px] text-gray-400 mt-1">${new Date(poll.createdAt).toLocaleDateString('da-DK')}</div>
                 `;
-                list.appendChild(row);
+                button.onclick = () => selectPoll(poll.id);
+                listEl.appendChild(button);
             });
         }
 
-        async function deletePoll(id) {
-            if (!confirm('Er du helt sikker på, at du vil slette denne afstemning permanent?')) return;
+        async function selectPoll(id) {
+            currentPollId = id;
+            loadPolls(); // Genindlæs for at opdatere aktiv styling i listen
 
-            const res = await fetch(`${API_URL}/api/admin/polls/${id}`, {
+            const res = await fetch(`/api/polls/${id}`);
+            const poll = await res.json();
+
+            document.getElementById('no-poll-selected').classList.add('hidden');
+            const editor = document.getElementById('poll-editor');
+            editor.classList.remove('hidden');
+
+            document.getElementById('edit-title').innerText = poll.title;
+            document.getElementById('edit-desc').innerText = poll.description || 'Ingen beskrivelse.';
+
+            // Render datoer
+            const datesList = document.getElementById('dates-list');
+            datesList.innerHTML = '';
+            poll.dates.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-gray-700 p-2.5 rounded text-sm border border-gray-600';
+                item.innerHTML = `
+                    <span class="font-semibold">${formatDate(d.date)}</span>
+                    <button onclick="deleteDate('${d.date}')" class="text-red-400 hover:text-red-500 text-xs font-bold px-2 py-1">Slet</button>
+                `;
+                datesList.appendChild(item);
+            });
+
+            // Saml unikke stemmer/voters
+            const voterMap = {}; // name -> array of dates they voted for
+            poll.dates.forEach(d => {
+                d.votes.forEach(voter => {
+                    if (!voterMap[voter]) voterMap[voter] = [];
+                    voterMap[voter].push(d.date);
+                });
+            });
+
+            // Render vælgere
+            const votersList = document.getElementById('voters-list');
+            votersList.innerHTML = '';
+            
+            const voters = Object.keys(voterMap);
+            if (voters.length === 0) {
+                votersList.innerHTML = '<p class="text-gray-500 italic text-sm">Ingen har stemt endnu.</p>';
+            } else {
+                voters.forEach(voter => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-700 p-3 rounded text-sm border border-gray-600';
+                    item.innerHTML = `
+                        <div>
+                            <span class="font-bold text-emerald-400">${voter}</span>
+                            <span class="text-xs text-gray-400 ml-2">(${voterMap[voter].length} valg)</span>
+                        </div>
+                        <button onclick="deleteUserVotes('${voter}')" class="text-red-400 hover:text-red-500 font-semibold text-xs bg-gray-800 hover:bg-gray-900 px-2.5 py-1.5 rounded transition">
+                            Fjern stemme
+                        </button>
+                    `;
+                    votersList.appendChild(item);
+                });
+            }
+        }
+
+        async function addDateToPoll() {
+            const dateVal = document.getElementById('new-date-input').value;
+            if (!dateVal) {
+                alert('Vælg venligst en dato først!');
+                return;
+            }
+
+            const res = await fetch(`/api/admin/polls/${currentPollId}/dates`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-password': adminPassword
+                },
+                body: JSON.stringify({ date: dateVal })
+            });
+
+            if (res.ok) {
+                document.getElementById('new-date-input').value = '';
+                selectPoll(currentPollId);
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Fejl under tilføjelse af dato.');
+            }
+        }
+
+        async function deleteDate(dateStr) {
+            if (!confirm(`Er du sikker på, at du vil slette datoen ${formatDate(dateStr)}? Eventuelle stemmer på denne dato vil blive slettet permanent.`)) return;
+
+            const res = await fetch(`/api/admin/polls/${currentPollId}/dates/${dateStr}`, {
                 method: 'DELETE',
                 headers: { 'x-admin-password': adminPassword }
             });
 
             if (res.ok) {
-                loadAdminPolls();
-            } else {
-                alert('Kunne ikke slette afstemningen.');
+                selectPoll(currentPollId);
+            }
+        }
+
+        async function deleteUserVotes(name) {
+            if (!confirm(`Er du sikker på, at du vil slette alle stemmer afgivet af "${name}"?`)) return;
+
+            const res = await fetch(`/api/admin/polls/${currentPollId}/votes/${encodeURIComponent(name)}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-password': adminPassword }
+            });
+
+            if (res.ok) {
+                selectPoll(currentPollId);
+            }
+        }
+
+        async function deletePoll() {
+            if (!confirm('Er du helt sikker på, at du vil slette denne afstemning permanent? Denne handling kan ikke fortrydes.')) return;
+
+            const res = await fetch(`/api/admin/polls/${currentPollId}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-password': adminPassword }
+            });
+
+            if (res.ok) {
+                currentPollId = null;
+                document.getElementById('poll-editor').classList.add('hidden');
+                document.getElementById('no-poll-selected').classList.remove('hidden');
+                loadPolls();
             }
         }
 
         function formatDate(dateStr) {
-            const options = { weekday: 'short', day: 'numeric', month: 'short' };
+            const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
             return new Date(dateStr).toLocaleDateString('da-DK', options);
         }
     </script>
