@@ -7,7 +7,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data', 'polls.json');
 
-// Hent admin password fra miljøvariabel (default til "admin123" hvis ikke sat)
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 app.use(express.json());
@@ -23,7 +22,6 @@ if (!fs.existsSync(DATA_FILE)) {
 const readData = () => JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 const writeData = (data) => fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 
-// Middleware til at tjekke admin password i HTTP headeren
 const requireAdmin = (req, res, next) => {
     const authHeader = req.headers['x-admin-password'];
     if (authHeader === ADMIN_PASSWORD) {
@@ -33,7 +31,6 @@ const requireAdmin = (req, res, next) => {
     }
 };
 
-// API: Tjek om password er korrekt
 app.post('/api/admin/login', (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
@@ -43,15 +40,12 @@ app.post('/api/admin/login', (req, res) => {
     }
 });
 
-// API: Hent ALLE afstemninger (Kræver admin)
 app.get('/api/admin/polls', requireAdmin, (req, res) => {
     const polls = readData();
-    // Returner som et array sorteret efter oprettelsesdato (nyeste først)
     const pollList = Object.values(polls).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(pollList);
 });
 
-// API: Slet en afstemning (Kræver admin)
 app.delete('/api/admin/polls/:id', requireAdmin, (req, res) => {
     const polls = readData();
     if (polls[req.params.id]) {
@@ -63,10 +57,9 @@ app.delete('/api/admin/polls/:id', requireAdmin, (req, res) => {
     }
 });
 
-// API: Opret en ny afstemning (Kræver IKKE admin her, så du hurtigt kan lave en, 
-// men vi kan tilføje requireAdmin hvis du vil have fuld kontrol)
+// API: Opret ny afstemning (Nu med description)
 app.post('/api/polls', (req, res) => {
-    const { title, dates } = req.body;
+    const { title, description, dates } = req.body;
     if (!title || !dates || !Array.isArray(dates)) {
         return res.status(400).json({ error: 'Ugyldig data' });
     }
@@ -77,6 +70,7 @@ app.post('/api/polls', (req, res) => {
     polls[pollId] = {
         id: pollId,
         title,
+        description: description || '', // Gem beskrivelsen (eller en tom streng hvis tom)
         dates: dates.map(d => ({ date: d, votes: [] })),
         createdAt: new Date().toISOString()
     };
@@ -85,7 +79,6 @@ app.post('/api/polls', (req, res) => {
     res.json({ id: pollId });
 });
 
-// API: Hent en specifik afstemning (Til vennerne der skal stemme)
 app.get('/api/polls/:id', (req, res) => {
     const polls = readData();
     const poll = polls[req.params.id];
@@ -93,7 +86,6 @@ app.get('/api/polls/:id', (req, res) => {
     res.json(poll);
 });
 
-// API: Afgiv stemme
 app.post('/api/polls/:id/vote', (req, res) => {
     const { name, selectedDates } = req.body;
     if (!name || !Array.isArray(selectedDates)) {

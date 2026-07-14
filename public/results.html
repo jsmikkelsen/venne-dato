@@ -10,8 +10,12 @@
 
     <div class="max-w-2xl w-full bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700 my-8">
         <!-- HEADER -->
-        <h1 class="text-3xl font-bold text-center text-emerald-400 mb-2">📊 Resultat</h1>
-        <h2 id="poll-title" class="text-xl text-center text-gray-300 mb-8">Indlæser afstemning...</h2>
+        <h1 class="text-3xl font-bold text-center text-emerald-400 mb-2"> Resultat</h1>
+        <div class="text-center mb-8">
+            <h2 id="poll-title" class="text-xl text-gray-300 font-semibold mb-1">Indlæser afstemning...</h2>
+            <!-- NY PLADS TIL BESKRIVELSE -->
+            <p id="poll-desc" class="text-sm text-gray-400 italic max-w-md mx-auto whitespace-pre-wrap mt-2"></p>
+        </div>
 
         <!-- RESULTAT LISTE -->
         <div class="space-y-4">
@@ -65,7 +69,15 @@
             const poll = await res.json();
             document.getElementById('poll-title').innerText = poll.title;
 
-            // Find det maksimale antal stemmer for at kunne fremhæve "vinderen"
+            // Vis beskrivelsen hvis den findes
+            const descEl = document.getElementById('poll-desc');
+            if (poll.description) {
+                descEl.innerText = poll.description;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
+
             const maxVotes = Math.max(...poll.dates.map(d => d.votes.length));
 
             const resultsTable = document.getElementById('results-table');
@@ -74,8 +86,6 @@
             poll.dates.forEach(d => {
                 const isWinner = d.votes.length === maxVotes && maxVotes > 0;
                 const row = document.createElement('tr');
-                
-                // Fremhæv rækken med en flot grøn nuance, hvis det er datoen med flest stemmer
                 row.className = `border-b border-gray-800/60 transition-colors ${isWinner ? 'bg-emerald-950/40 border-l-4 border-l-emerald-500' : ''}`;
                 
                 row.innerHTML = `

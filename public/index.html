@@ -27,6 +27,12 @@
                 <label class="block text-sm font-medium mb-1">Hvad skal vi?</label>
                 <input type="text" id="poll-title" placeholder="F.eks. Sommerhustur 🏖️" class="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
             </div>
+
+            <!-- NYT BESKRIVELSESFELT -->
+            <div>
+                <label class="block text-sm font-medium mb-1">Beskrivelse (valgfri)</label>
+                <textarea id="poll-desc" placeholder="Skriv lidt detaljer om begivenheden, f.eks. hvor vi skal hen, eller hvornår der er deadline for at stemme..." rows="3" class="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white text-sm resize-none"></textarea>
+            </div>
             
             <div>
                 <label class="block text-sm font-medium mb-2">Klik på de datoer, du vil foreslå:</label>
@@ -62,7 +68,11 @@
 
         <!-- STEMME PANEL -->
         <div id="vote-panel" class="hidden space-y-6">
-            <h2 id="vote-title" class="text-2xl font-bold text-center text-white">Indlæser...</h2>
+            <div class="text-center">
+                <h2 id="vote-title" class="text-2xl font-bold text-white mb-2">Indlæser...</h2>
+                <!-- PLADS TIL BESKRIVELSE -->
+                <p id="vote-desc" class="text-sm text-gray-400 italic max-w-md mx-auto whitespace-pre-wrap"></p>
+            </div>
             
             <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 space-y-4">
                 <h3 class="font-semibold text-emerald-400">Afgiv din stemme</h3>
@@ -154,6 +164,7 @@
 
         async function createPoll() {
             const title = document.getElementById('poll-title').value.trim();
+            const description = document.getElementById('poll-desc').value.trim();
             const dates = Array.from(selectedDates).sort();
 
             if (!title || dates.length === 0) {
@@ -164,7 +175,7 @@
             const res = await fetch(`${API_URL}/api/polls`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, dates })
+                body: JSON.stringify({ title, description, dates })
             });
             const data = await res.json();
 
@@ -190,6 +201,15 @@
             }
             const poll = await res.json();
             document.getElementById('vote-title').innerText = poll.title;
+            
+            // Vis beskrivelsen hvis den findes
+            const descEl = document.getElementById('vote-desc');
+            if (poll.description) {
+                descEl.innerText = poll.description;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
 
             const checkboxContainer = document.getElementById('date-checkboxes');
             checkboxContainer.innerHTML = '';
@@ -221,7 +241,6 @@
             });
 
             if (res.ok) {
-                // Send brugeren direkte videre til resultatsiden efter succesfuld afstemning
                 window.location.href = `/results.html?poll=${pollId}`;
             }
         }
