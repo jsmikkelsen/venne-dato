@@ -6,6 +6,8 @@ services:
     container_name: venne-dato-app
     ports:
       - "3000:3000"
+    environment:
+      - ADMIN_PASSWORD=Jacob2004   # <-- Skift denne adgangskode til dit eget valg!
     volumes:
       - ./data:/app/data
     restart: unless-stopped

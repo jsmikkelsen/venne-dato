@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Venne-Dato</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- HEADER -->
+        <div class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+            <h1 class="text-3xl font-bold text-emerald-400">🛡️ Admin Panel</h1>
+            <button onclick="logout()" id="logout-btn" class="hidden text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded transition">Log ud</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="login-section" class="max-w-md mx-auto bg-gray-800 p-8 rounded-2xl border border-gray-700 shadow-xl space-y-4">
+            <h2 class="text-xl font-semibold text-center">Log ind på administrationen</h2>
+            <div>
+                <input type="password" id="admin-password-input" placeholder="Indtast admin password..." class="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
+            </div>
+            <button onclick="tryLogin()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-3 rounded-lg transition-colors">Log ind</button>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard-section" class="hidden space-y-6">
+            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-lg">
+                <h2 class="text-xl font-semibold text-emerald-400 mb-4">Aktive Afstemninger</h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700 text-gray-400">
+                                <th class="py-3 px-4">Titel / Oprettet</th>
+                                <th class="py-3 px-4">Dato-forslag & Stemmer</th>
+                                <th class="py-3 px-4 text-right">Handlinger</th>
+                            </tr>
+                        </thead>
+                        <tbody id="polls-list">
+                            <!-- Indlæses dynamisk -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let adminPassword = localStorage.getItem('admin_pass') || '';
+
+        // Tjek om vi allerede har et gemt password
+        if (adminPassword) {
+            showDashboard();
+        }
+
+        async function tryLogin() {
+            const password = document.getElementById('admin-password-input').value;
+            const res = await fetch(`${API_URL}/api/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+
+            if (res.ok) {
+                localStorage.setItem('admin_pass', password);
+                adminPassword = password;
+                showDashboard();
+            } else {
+                alert('Forkert adgangskode! Prøv igen.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_pass');
+            location.reload();
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('logout-btn').classList.remove('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            loadAdminPolls();
+        }
+
+        async function loadAdminPolls() {
+            const res = await fetch(`${API_URL}/api/admin/polls`, {
+                headers: { 'x-admin-password': adminPassword }
+            });
+
+            if (!res.ok) {
+                logout(); // Hvis passwordet på serveren er ændret, logges der ud
+                return;
+            }
+
+            const polls = await res.json();
+            const list = document.getElementById('polls-list');
+            list.innerHTML = '';
+
+            if (polls.length === 0) {
+                list.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-gray-500">Ingen oprettede afstemninger endnu.</td></tr>`;
+                return;
+            }
+
+            polls.forEach(poll => {
+                const dateInfo = poll.dates.map(d => {
+                    const formatted = formatDate(d.date);
+                    return `<div><strong>${formatted}</strong>: ${d.votes.length} stemmer (${d.votes.join(', ') || 'ingen'})</div>`;
+                }).join('');
+
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-800 hover:bg-gray-800/50 transition-colors';
+                row.innerHTML = `
+                    <td class="py-4 px-4 align-top">
+                        <div class="font-bold text-white text-base">${poll.title}</div>
+                        <div class="text-xs text-gray-500 mt-1">Oprettet: ${new Date(poll.createdAt).toLocaleDateString('da-DK')}</div>
+                    </td>
+                    <td class="py-4 px-4 text-xs text-gray-300 space-y-1 align-top">
+                        ${dateInfo}
+                    </td>
+                    <td class="py-4 px-4 text-right align-top space-x-2 whitespace-nowrap">
+                        <a href="/?poll=${poll.id}" target="_blank" class="inline-block text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded transition">Vis Side</a>
+                        <button onclick="deletePoll('${poll.id}')" class="text-xs bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded transition">Slet</button>
+                    </td>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        async function deletePoll(id) {
+            if (!confirm('Er du helt sikker på, at du vil slette denne afstemning permanent?')) return;
+
+            const res = await fetch(`${API_URL}/api/admin/polls/${id}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-password': adminPassword }
+            });
+
+            if (res.ok) {
+                loadAdminPolls();
+            } else {
+                alert('Kunne ikke slette afstemningen.');
+            }
+        }
+
+        function formatDate(dateStr) {
+            const options = { weekday: 'short', day: 'numeric', month: 'short' };
+            return new Date(dateStr).toLocaleDateString('da-DK', options);
+        }
+    </script>
+</body>
+</html>
