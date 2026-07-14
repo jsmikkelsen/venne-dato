@@ -6,7 +6,6 @@
     <title>Hvornår kan vi mødes?</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Lille animation til valgte datoer */
         .date-btn-selected {
             background-color: #10b981 !important;
             color: #ffffff !important;
@@ -40,12 +39,10 @@
                         <button onclick="changeMonth(1)" class="px-2 py-1 bg-gray-600 hover:bg-gray-500 rounded text-xs">Næste ▶</button>
                     </div>
                     
-                    <!-- Ugedage overskrifter -->
                     <div class="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 font-semibold mb-2">
                         <div>Ma</div><div>Ti</div><div>On</div><div>To</div><div>Fr</div><div>Lø</div><div>Sø</div>
                     </div>
                     
-                    <!-- Kalenderdage -->
                     <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
                 </div>
 
@@ -67,8 +64,7 @@
         <div id="vote-panel" class="hidden space-y-6">
             <h2 id="vote-title" class="text-2xl font-bold text-center text-white">Indlæser...</h2>
             
-            <!-- Stemme-formular -->
-            <div class="bg-gray-700 p-4 rounded-lg border border-gray-600 space-y-4">
+            <div class="bg-gray-700 p-6 rounded-lg border border-gray-600 space-y-4">
                 <h3 class="font-semibold text-emerald-400">Afgiv din stemme</h3>
                 <div>
                     <label class="block text-xs font-medium mb-1">Dit Navn</label>
@@ -78,25 +74,10 @@
                 <div id="date-checkboxes" class="space-y-2">
                     <!-- Datoer loades dynamisk her -->
                 </div>
-                <button onclick="submitVote()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-2.5 rounded transition">Gem min stemme</button>
-            </div>
-
-            <!-- Nuværende stilling -->
-            <div>
-                <h3 class="font-semibold text-gray-200 mb-3">Hvem kan hvornår?</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-700">
-                                <th class="py-2">Dato</th>
-                                <th class="py-2">Hvem kan?</th>
-                                <th class="py-2 text-center">Antal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="results-table">
-                            <!-- Resultater loades dynamisk her -->
-                        </tbody>
-                    </table>
+                <button onclick="submitVote()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-3 rounded-lg transition">Gem min stemme</button>
+                
+                <div class="text-center pt-2">
+                    <a id="view-results-link" href="#" class="text-xs text-gray-400 hover:text-emerald-400 underline">Se resultater uden at stemme</a>
                 </div>
             </div>
         </div>
@@ -108,64 +89,49 @@
         const urlParams = new URLSearchParams(window.location.search);
         const pollId = urlParams.get('poll');
 
-        // Kalender tilstand
         let currentDate = new Date();
-        const selectedDates = new Set(); // Indeholder datoer i 'YYYY-MM-DD' format
+        const selectedDates = new Set();
 
-        // Initialisering
         if (pollId) {
             document.getElementById('admin-panel').classList.add('hidden');
             document.getElementById('vote-panel').classList.remove('hidden');
+            document.getElementById('view-results-link').href = `/results.html?poll=${pollId}`;
             loadPoll(pollId);
         } else {
             renderCalendar();
         }
 
-        // --- KALENDER SYSTEM ---
         function renderCalendar() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-
-            // Måned overskrift
             const monthNames = ["Januar", "Februar", "Marts", "April", "Maj", "Juni", "Juli", "August", "September", "Oktober", "November", "December"];
             document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
 
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
 
-            // Find første dag i måneden (0 = Søndag, 1 = Mandag osv. -> Vi vil have Mandag som første kolonne)
             let firstDayIndex = new Date(year, month, 1).getDay() - 1;
-            if (firstDayIndex === -1) firstDayIndex = 6; // Søndag rykkes til bunden
+            if (firstDayIndex === -1) firstDayIndex = 6;
 
-            // Find antal dage i måneden
             const totalDays = new Date(year, month + 1, 0).getDate();
 
-            // Tomme felter inden den 1. i måneden
             for (let i = 0; i < firstDayIndex; i++) {
-                const empty = document.createElement('div');
-                grid.appendChild(empty);
+                grid.appendChild(document.createElement('div'));
             }
 
-            // Byg dagene
             for (let day = 1; day <= totalDays; day++) {
                 const button = document.createElement('button');
                 button.type = "button";
                 button.innerText = day;
-                
-                // Generer YYYY-MM-DD streng
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 button.dataset.date = dateStr;
-
                 button.className = "p-2 text-sm rounded border border-gray-600 bg-gray-800 hover:bg-gray-600 transition-all font-medium text-center";
 
-                // Hvis datoen allerede er valgt, giv den klassen med det samme
                 if (selectedDates.has(dateStr)) {
                     button.classList.add('date-btn-selected');
                 }
 
-                // Klik event
                 button.onclick = () => toggleDateSelection(button, dateStr);
-
                 grid.appendChild(button);
             }
         }
@@ -186,10 +152,9 @@
             document.getElementById('selected-dates-count').innerText = selectedDates.size;
         }
 
-        // --- OPRET AFSTEMNING ---
         async function createPoll() {
             const title = document.getElementById('poll-title').value.trim();
-            const dates = Array.from(selectedDates).sort(); // Sorter datoer kronologisk
+            const dates = Array.from(selectedDates).sort();
 
             if (!title || dates.length === 0) {
                 alert('Udfyld venligst en titel og vælg mindst én dato i kalenderen.');
@@ -217,7 +182,6 @@
             alert('Linket er kopieret til udklipsholderen!');
         }
 
-        // --- STEMMESIDE LOGIK ---
         async function loadPoll(id) {
             const res = await fetch(`${API_URL}/api/polls/${id}`);
             if (!res.ok) {
@@ -225,10 +189,8 @@
                 return;
             }
             const poll = await res.json();
-            
             document.getElementById('vote-title').innerText = poll.title;
 
-            // Afkrydsningsfelter
             const checkboxContainer = document.getElementById('date-checkboxes');
             checkboxContainer.innerHTML = '';
             poll.dates.forEach(d => {
@@ -239,20 +201,6 @@
                     <span class="text-white">${formatDate(d.date)}</span>
                 `;
                 checkboxContainer.appendChild(label);
-            });
-
-            // Resultat tabel
-            const resultsTable = document.getElementById('results-table');
-            resultsTable.innerHTML = '';
-            poll.dates.forEach(d => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-800';
-                row.innerHTML = `
-                    <td class="py-3 font-medium">${formatDate(d.date)}</td>
-                    <td class="py-3 text-gray-300 text-xs">${d.votes.length > 0 ? d.votes.join(', ') : '<span class="text-gray-500">Ingen endnu</span>'}</td>
-                    <td class="py-3 text-center text-emerald-400 font-bold">${d.votes.length}</td>
-                `;
-                resultsTable.appendChild(row);
             });
         }
 
@@ -273,9 +221,8 @@
             });
 
             if (res.ok) {
-                alert('Din stemme er registreret!');
-                loadPoll(pollId);
-                document.getElementById('voter-name').value = '';
+                // Send brugeren direkte videre til resultatsiden efter succesfuld afstemning
+                window.location.href = `/results.html?poll=${pollId}`;
             }
         }
 

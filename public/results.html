@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultat - Hvem kan hvornår?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-2xl w-full bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700 my-8">
+        <!-- HEADER -->
+        <h1 class="text-3xl font-bold text-center text-emerald-400 mb-2">📊 Resultat</h1>
+        <h2 id="poll-title" class="text-xl text-center text-gray-300 mb-8">Indlæser afstemning...</h2>
+
+        <!-- RESULTAT LISTE -->
+        <div class="space-y-4">
+            <h3 class="font-semibold text-lg text-gray-200">Stillingen lige nu</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-700 text-gray-400">
+                            <th class="py-3 px-4">Dato</th>
+                            <th class="py-3 px-4">Hvem kan deltage?</th>
+                            <th class="py-3 px-4 text-center">Antal</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table">
+                        <!-- Indlæses dynamisk -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- HANDLINGER -->
+        <div class="mt-8 pt-6 border-t border-gray-700 flex justify-between items-center text-sm">
+            <a id="back-to-vote" href="#" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1">
+                ◀ Gå tilbage og stem/ret svar
+            </a>
+            <button onclick="shareResults()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition">
+                Del resultatside
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const urlParams = new URLSearchParams(window.location.search);
+        const pollId = urlParams.get('poll');
+
+        if (!pollId) {
+            document.getElementById('poll-title').innerText = "Ingen afstemning valgt 😢";
+        } else {
+            document.getElementById('back-to-vote').href = `/?poll=${pollId}`;
+            loadResults(pollId);
+        }
+
+        async function loadResults(id) {
+            const res = await fetch(`${API_URL}/api/polls/${id}`);
+            if (!res.ok) {
+                document.getElementById('poll-title').innerText = "Afstemningen blev ikke fundet 😢";
+                return;
+            }
+            const poll = await res.json();
+            document.getElementById('poll-title').innerText = poll.title;
+
+            // Find det maksimale antal stemmer for at kunne fremhæve "vinderen"
+            const maxVotes = Math.max(...poll.dates.map(d => d.votes.length));
+
+            const resultsTable = document.getElementById('results-table');
+            resultsTable.innerHTML = '';
+
+            poll.dates.forEach(d => {
+                const isWinner = d.votes.length === maxVotes && maxVotes > 0;
+                const row = document.createElement('tr');
+                
+                // Fremhæv rækken med en flot grøn nuance, hvis det er datoen med flest stemmer
+                row.className = `border-b border-gray-800/60 transition-colors ${isWinner ? 'bg-emerald-950/40 border-l-4 border-l-emerald-500' : ''}`;
+                
+                row.innerHTML = `
+                    <td class="py-4 px-4 font-semibold ${isWinner ? 'text-emerald-400' : 'text-white'}">
+                        ${formatDate(d.date)}
+                        ${isWinner ? '<span class="ml-2 inline-block text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Mest populær</span>' : ''}
+                    </td>
+                    <td class="py-4 px-4 text-gray-300 text-xs">
+                        ${d.votes.length > 0 ? d.votes.join(', ') : '<span class="text-gray-500 italic">Ingen stemmer endnu</span>'}
+                    </td>
+                    <td class="py-4 px-4 text-center font-bold ${isWinner ? 'text-emerald-400 text-lg' : 'text-gray-300'}">
+                        ${d.votes.length}
+                    </td>
+                `;
+                resultsTable.appendChild(row);
+            });
+        }
+
+        function shareResults() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Linket til denne resultatside er kopieret til udklipsholderen!');
+        }
+
+        function formatDate(dateStr) {
+            const options = { weekday: 'long', day: 'numeric', month: 'short' };
+            return new Date(dateStr).toLocaleDateString('da-DK', options);
+        }
+    </script>
+</body>
+</html>
