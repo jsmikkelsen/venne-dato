@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hvornår kan vi mødes?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-xl w-full bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+        <h1 class="text-3xl font-bold text-center text-emerald-400 mb-6">📅 Venne-Dato</h1>
+
+        <div id="admin-panel" class="space-y-4">
+            <h2 class="text-xl font-semibold text-gray-200">Opret ny afstemning</h2>
+            <div>
+                <label class="block text-sm font-medium mb-1">Hvad skal vi?</label>
+                <input type="text" id="poll-title" placeholder="F.eks. Sommerhustur 2026 🏖️" class="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-white">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Dato-forslag</label>
+                <div id="date-inputs" class="space-y-2">
+                    <input type="date" class="date-input w-full p-3 rounded bg-gray-700 border border-gray-600 text-white">
+                </div>
+                <button onclick="addDateInput()" type="button" class="mt-2 text-sm text-emerald-400 hover:text-emerald-300 font-semibold">+ Tilføj endnu en dato</button>
+            </div>
+
+            <button onclick="createPoll()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-3 rounded-lg transition-colors mt-4">Opret Afstemning & Hent Link</button>
+            
+            <div id="share-section" class="hidden mt-6 p-4 bg-gray-700 rounded-lg border border-emerald-500">
+                <p class="text-emerald-400 font-bold mb-1 text-sm">Send dette link til vennerne:</p>
+                <input type="text" id="share-link" readonly class="w-full p-2 bg-gray-800 rounded border border-gray-600 text-sm mb-2 text-white">
+                <button onclick="copyLink()" class="text-xs bg-emerald-500 px-3 py-1.5 rounded font-bold hover:bg-emerald-600 transition">Kopier Link</button>
+            </div>
+        </div>
+
+        <div id="vote-panel" class="hidden space-y-6">
+            <h2 id="vote-title" class="text-2xl font-bold text-center text-white">Indlæser...</h2>
+            
+            <div class="bg-gray-700 p-4 rounded-lg border border-gray-600 space-y-4">
+                <h3 class="font-semibold text-emerald-400">Afgiv din stemme</h3>
+                <div>
+                    <label class="block text-xs font-medium mb-1">Dit Navn</label>
+                    <input type="text" id="voter-name" placeholder="Skriv dit navn her..." class="w-full p-2.5 rounded bg-gray-800 border border-gray-600 text-white">
+                </div>
+                
+                <div id="date-checkboxes" class="space-y-2">
+                    </div>
+                <button onclick="submitVote()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold p-2.5 rounded transition">Gem min stemme</button>
+            </div>
+
+            <div>
+                <h3 class="font-semibold text-gray-200 mb-3">Hvem kan hvornår?</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="py-2">Dato</th>
+                                <th class="py-2">Hvem kan?</th>
+                                <th class="py-2 text-center">Antal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        const urlParams = new URLSearchParams(window.location.search);
+        const pollId = urlParams.get('poll');
+
+        // Initialiser siden alt efter om vi er på admin- eller stemmesiden
+        if (pollId) {
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('vote-panel').classList.remove('hidden');
+            loadPoll(pollId);
+        }
+
+        // Dynamisk tilføjelse af dato-felter i admin
+        function addDateInput() {
+            const container = document.getElementById('date-inputs');
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.className = 'date-input w-full p-3 rounded bg-gray-700 border border-gray-600 text-white mt-2';
+            container.appendChild(input);
+        }
+
+        // Opret afstemning
+        async function createPoll() {
+            const title = document.getElementById('poll-title').value.trim();
+            const dateInputs = document.querySelectorAll('.date-input');
+            const dates = Array.from(dateInputs).map(i => i.value).filter(d => d);
+
+            if (!title || dates.length === 0) {
+                alert('Udfyld venligst en titel og mindst én dato.');
+                return;
+            }
+
+            const res = await fetch(`${API_URL}/api/polls`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, dates })
+            });
+            const data = await res.json();
+
+            if (data.id) {
+                const shareLink = `${window.location.origin}/?poll=${data.id}`;
+                document.getElementById('share-link').value = shareLink;
+                document.getElementById('share-section').classList.remove('hidden');
+            }
+        }
+
+        function copyLink() {
+            const copyText = document.getElementById('share-link');
+            copyText.select();
+            navigator.clipboard.writeText(copyText.value);
+            alert('Linket er kopieret til udklipsholderen!');
+        }
+
+        // Load afstemningsdata (til stemmesiden)
+        async function loadPoll(id) {
+            const res = await fetch(`${API_URL}/api/polls/${id}`);
+            if (!res.ok) {
+                document.getElementById('vote-title').innerText = "Afstemningen blev ikke fundet 😢";
+                return;
+            }
+            const poll = await res.json();
+            
+            document.getElementById('vote-title').innerText = poll.title;
+
+            // Byg afkrydsningsfelter
+            const checkboxContainer = document.getElementById('date-checkboxes');
+            checkboxContainer.innerHTML = '';
+            poll.dates.forEach(d => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center space-x-3 bg-gray-800 p-2.5 rounded cursor-pointer border border-gray-700 hover:border-emerald-500';
+                label.innerHTML = `
+                    <input type="checkbox" value="${d.date}" class="poll-checkbox form-checkbox h-5 w-5 text-emerald-500 rounded focus:ring-0">
+                    <span class="text-white">${formatDate(d.date)}</span>
+                `;
+                checkboxContainer.appendChild(label);
+            });
+
+            // Byg resultattabel
+            const resultsTable = document.getElementById('results-table');
+            resultsTable.innerHTML = '';
+            poll.dates.forEach(d => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-800';
+                row.innerHTML = `
+                    <td class="py-3 font-medium">${formatDate(d.date)}</td>
+                    <td class="py-3 text-gray-300 text-xs">${d.votes.length > 0 ? d.votes.join(', ') : '<span class="text-gray-500">Ingen endnu</span>'}</td>
+                    <td class="py-3 text-center text-emerald-400 font-bold">${d.votes.length}</td>
+                `;
+                resultsTable.appendChild(row);
+            });
+        }
+
+        // Send stemme
+        async function submitVote() {
+            const name = document.getElementById('voter-name').value.trim();
+            if (!name) {
+                alert('Skriv venligst dit navn!');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('.poll-checkbox:checked');
+            const selectedDates = Array.from(checkboxes).map(c => c.value);
+
+            const res = await fetch(`${API_URL}/api/polls/${pollId}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, selectedDates })
+            });
+
+            if (res.ok) {
+                alert('Din stemme er registreret!');
+                loadPoll(pollId); // Genindlæs for at opdatere tabellen
+                document.getElementById('voter-name').value = '';
+            }
+        }
+
+        // Formaterer YYYY-MM-DD til pænere dansk format
+        function formatDate(dateStr) {
+            const options = { weekday: 'short', day: 'numeric', month: 'short' };
+            return new Date(dateStr).toLocaleDateString('da-DK', options);
+        }
+    </script>
+</body>
+</html>
